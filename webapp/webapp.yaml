@@ -25,10 +25,9 @@ kind: Service
 metadata:
   name: webapp-service
 spec:
-  type: NodePort
+  type: ClusterIP 
   selector:
     app: webapp
   ports:
   - port: 80
     targetPort: 5678
-    nodePort: 30080
