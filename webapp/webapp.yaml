@@ -16,7 +16,7 @@ spec:
       - name: webapp
         image: hashicorp/http-echo
         args:
-        - "-text=Version 1.0 - GREEN THEME"
+        - "-text=Version 1.0 - BLUE THEME"
         ports:
         - containerPort: 5678
 ---
