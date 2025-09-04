@@ -11,7 +11,7 @@ spec:
         testing.upbound.io/example-name: s3
     region: us-east-1
     rule:
-    - objectOwnership: BucketOwnerPreferred
+      objectOwnership: BucketOwnerPreferred
 
 ---
 
