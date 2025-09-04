@@ -1,0 +1,28 @@
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: BucketOwnershipControls
+metadata:
+  labels:
+    testing.upbound.io/example-name: s3
+  name: example
+spec:
+  forProvider:
+    bucketSelector:
+      matchLabels:
+        testing.upbound.io/example-name: s3
+    region: us-east-1
+    rule:
+    - objectOwnership: BucketOwnerPreferred
+
+---
+
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  labels:
+    testing.upbound.io/example-name: s3
+  name: webapp-s3
+spec:
+  forProvider:
+    region: us-east-1
+    tags:
+      foo: bar
