@@ -82,7 +82,7 @@ kind: Service
 metadata:
   name: webapp-service
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: webapp-s3
   ports:
