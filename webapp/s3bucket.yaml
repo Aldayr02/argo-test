@@ -8,7 +8,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"  # Segundo
 spec:
   forProvider:
-    bucket: demo-webapp-s3-20250905  # ⚠️ CAMBIAR por nombre único
+    bucket: demo-webapp-s3-aldair  # ⚠️ CAMBIAR por nombre único
     region: us-east-2
     tags:
       foo: bar
