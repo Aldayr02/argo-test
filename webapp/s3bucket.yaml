@@ -3,7 +3,7 @@ kind: BucketOwnershipControls
 metadata:
   labels:
     testing.upbound.io/example-name: s3
-  name: example
+  name: webapp-s3
 spec:
   forProvider:
     bucketSelector:
