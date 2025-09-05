@@ -24,7 +24,7 @@ metadata:
 spec:
   forProvider:
     bucketRef:
-      name: webapp-s3  # Referencia al objeto K8s, no al bucket AWS
+      name: aldayr-webapp-s3-demo-2024
     region: us-east-2
     rule:
       objectOwnership: BucketOwnerPreferred
