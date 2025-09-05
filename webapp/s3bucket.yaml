@@ -1,28 +1,34 @@
-apiVersion: s3.aws.m.upbound.io/v1beta1
-kind: BucketOwnershipControls
-metadata:
-  labels:
-    testing.upbound.io/example-name: s3
-  name: webapp-s3
-spec:
-  forProvider:
-    bucketSelector:
-      matchLabels:
-        testing.upbound.io/example-name: s3
-    region: us-east-2
-    rule:
-      objectOwnership: BucketOwnerPreferred
-
----
-
+# Crear el bucket primero
 apiVersion: s3.aws.m.upbound.io/v1beta1
 kind: Bucket
 metadata:
+  name: webapp-s3
   labels:
     testing.upbound.io/example-name: s3
-  name: webapp-s3
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Se crea primero
 spec:
   forProvider:
     region: us-east-2
     tags:
       foo: bar
+---
+# Crear los controles después
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: BucketOwnershipControls
+metadata:
+  name: webapp-s3-ownership
+  labels:
+    testing.upbound.io/example-name: s3
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Se crea después del bucket
+spec:
+  forProvider:
+    # Opción 1: Referencia directa (más confiable)
+    bucket: webapp-s3
+    # O Opción 2: Usar bucketRef para referencia dinámica
+    # bucketRef:
+    #   name: webapp-s3
+    region: us-east-2
+    rule:
+    - objectOwnership: BucketOwnerPreferred
