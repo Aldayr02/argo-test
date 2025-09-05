@@ -61,7 +61,7 @@ spec:
           done
         env:
         - name: AWS_DEFAULT_REGION
-          value: "us-east-1"
+          value: "us-east-2"
         volumeMounts:
         - name: shared-data
           mountPath: /shared
