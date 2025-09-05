@@ -1,33 +1,80 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: webapp
+  name: webapp-with-s3
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: webapp
+      app: webapp-s3
   template:
     metadata:
       labels:
-        app: webapp
+        app: webapp-s3
     spec:
       containers:
+      # Tu webapp original
       - name: webapp
         image: hashicorp/http-echo
         args:
-        - "-text=Version 1.0 - BLUE THEME"
+        - "-text=Version 1.0 - BLUE THEME with S3 connectivity"
         ports:
         - containerPort: 5678
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+      
+      # Sidecar simple para S3
+      - name: s3-checker
+        image: amazon/aws-cli:latest
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - |
+          while true; do
+            echo "⏰ $(date): Verificando conexión S3..."
+            
+            if aws s3 ls > /shared/s3-status.txt 2>&1; then
+              echo "✅ CONECTADO - $(date)" > /shared/s3-connection.txt
+              echo "Buckets disponibles:" >> /shared/s3-connection.txt
+              aws s3 ls >> /shared/s3-connection.txt
+            else
+              echo "❌ ERROR - $(date)" > /shared/s3-connection.txt
+              echo "No se pudo conectar a S3" >> /shared/s3-connection.txt
+            fi
+            
+            echo "Durmiendo 60 segundos..."
+            sleep 60
+          done
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret-access-key
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+      
+      volumes:
+      - name: shared-data
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: webapp-service
 spec:
-  type: ClusterIP 
+  type: ClusterIP
   selector:
-    app: webapp
+    app: webapp-s3
   ports:
   - port: 80
     targetPort: 5678
