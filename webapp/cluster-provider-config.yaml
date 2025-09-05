@@ -3,12 +3,11 @@ kind: ClusterProviderConfig
 metadata:
   name: default
   annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    argocd.argoproj.io/sync-wave: "-1"  # Crear antes que otros recursos
+    argocd.argoproj.io/sync-wave: "1"  # Se crea primero
 spec:
   credentials:
+    source: Secret
     secretRef:
       namespace: crossplane-system
       name: aws-secret
       key: creds
-    source: Secret
