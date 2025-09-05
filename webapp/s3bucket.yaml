@@ -28,4 +28,4 @@ spec:
       name: webapp-s3  # Referencia al objeto K8s, no al bucket AWS
     region: us-east-2
     rule:
-    - objectOwnership: BucketOwnerPreferred
+      objectOwnership: BucketOwnerPreferred
