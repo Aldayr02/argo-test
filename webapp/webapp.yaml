@@ -16,7 +16,7 @@ spec:
       - name: webapp
         image: hashicorp/http-echo
         args:
-        - "-text=Version 1.0 - BLUE THEME with S3 connectivity"
+        - "-text=Version 1.0 - GREEN THEME with S3 connectivity"
         ports:
         - containerPort: 5678
         volumeMounts:
