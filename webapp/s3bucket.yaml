@@ -5,13 +5,14 @@ metadata:
   labels:
     testing.upbound.io/example-name: s3
   annotations:
-    argocd.argoproj.io/sync-wave: "1"  
+    argocd.argoproj.io/sync-wave: "2"  # Segundo
 spec:
   forProvider:
-    bucket: demo-webapp-s3-20250905 
+    bucket: demo-webapp-s3-20250905  # ⚠️ CAMBIAR por nombre único
     region: us-east-2
     tags:
       foo: bar
+      environment: demo
 ---
 apiVersion: s3.aws.m.upbound.io/v1beta1
 kind: BucketOwnershipControls
@@ -20,10 +21,11 @@ metadata:
   labels:
     testing.upbound.io/example-name: s3
   annotations:
-    argocd.argoproj.io/sync-wave: "2"  # Se crea después del bucket
+    argocd.argoproj.io/sync-wave: "3"  # Último
 spec:
   forProvider:
-    bucket: webapp-s3
+    bucketRef:
+      name: webapp-s3  # Referencia al objeto K8s, no al bucket AWS
     region: us-east-2
     rule:
     - objectOwnership: BucketOwnerPreferred
