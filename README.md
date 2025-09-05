@@ -22,6 +22,22 @@ mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $USER:$USER ~/.kube/config
 export KUBECONFIG=~/.kube/config
+
+sudo yum install bash-completion
+
+# Agregar el autocompletado de kubectl a tu sesión actual
+source <(kubectl completion bash)
+
+# Agregarlo permanentemente a tu .bashrc
+echo 'source <(kubectl completion bash)' >> ~/.bashrc
+
+# También puedes crear un alias 'k' para kubectl con autocompletado
+echo 'alias k=kubectl' >> ~/.bashrc
+echo 'complete -o default -F __start_kubectl k' >> ~/.bashrc
+
+# Recargar tu bashrc
+source ~/.bashrc
+
 ```
 
 ## 2. Instalación de ArgoCD
