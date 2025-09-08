@@ -2,9 +2,9 @@ apiVersion: platform.example.com/v1alpha1
 kind: Ec2S3
 metadata:
   name: ec2-s3-claim
-  namespace: default
+  namespace: demo1
   annotations:
-    argocd.argoproj.io/sync-wave: "2"  # Last
+    argocd.argoproj.io/sync-wave: "2" 
 spec:
   projectName: "myapp"
   environment: "dev"
