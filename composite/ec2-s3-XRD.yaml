@@ -7,15 +7,12 @@ metadata:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   group: platform.example.com
-  
   names:
-    kind: XEc2S3           # Composite Resource (XR)
+    kind: XEc2S3
     plural: xec2s3s
-    
   claimNames:
-    kind: Ec2S3           # Claim
+    kind: Ec2S3
     plural: ec2s3s
-    
   versions:
   - name: v1alpha1
     served: true
@@ -27,7 +24,6 @@ spec:
           spec:
             type: object
             properties:
-              # User-facing parameters
               ec2InstanceType:
                 type: string
                 default: "t3.micro"
@@ -52,9 +48,8 @@ spec:
             required:
             - projectName
           status:
-            type: object 
+            type: object
             properties:
-              # Output values
               ec2InstanceId:
                 type: string
                 description: "EC2 instance ID"
