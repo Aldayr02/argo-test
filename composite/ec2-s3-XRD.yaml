@@ -3,7 +3,7 @@ kind: CompositeResourceDefinition
 metadata:
   name: xec2s3s.platform.example.com
   annotations:
-    argocd.argoproj.io/sync-wave: "0"  # Changed to 0 (first)
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   group: platform.example.com
