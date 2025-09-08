@@ -3,7 +3,7 @@ kind: Composition
 metadata:
   name: ec2-s3-composition
 spec:
-  mode: Resources  # Use legacy mode
+  mode: Resources 
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
     kind: XEc2S3
