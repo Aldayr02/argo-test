@@ -1,0 +1,13 @@
+apiVersion: platform.example.com/v1alpha1
+kind: Ec2S3
+metadata:
+  name: my-infrastructure
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "3" 
+spec:
+  projectName: "myapp"
+  environment: "dev"
+  ec2InstanceType: "t3.micro"
+  ec2Region: "us-east-1"
+  s3Region: "us-east-1"  # Same region for lower latency
