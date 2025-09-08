@@ -1,0 +1,68 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xec2s3s.platform.example.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" 
+spec:
+  group: platform.example.com
+  
+  names:
+    kind: XEc2S3           # Composite Resource (XR)
+    plural: xec2s3s
+    
+  claimNames:
+    kind: Ec2S3           # Claim
+    plural: ec2s3s
+    
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # User-facing parameters
+              ec2InstanceType:
+                type: string
+                default: "t3.micro"
+                enum: ["t3.micro", "t3.small", "t3.medium"]
+                description: "EC2 instance type"
+              ec2Region:
+                type: string
+                default: "us-east-1"
+                description: "AWS region for EC2 instance"
+              s3Region:
+                type: string
+                default: "us-west-1"
+                description: "AWS region for S3 bucket"
+              environment:
+                type: string
+                default: "dev"
+                enum: ["dev", "staging", "prod"]
+                description: "Environment tag"
+              projectName:
+                type: string
+                description: "Project name for resource naming"
+            required:
+            - projectName
+          status:
+            type: object 
+            properties:
+              # Output values
+              ec2InstanceId:
+                type: string
+                description: "EC2 instance ID"
+              ec2PublicIp:
+                type: string
+                description: "EC2 public IP address"
+              s3BucketName:
+                type: string
+                description: "S3 bucket name"
+              s3BucketArn:
+                type: string
+                description: "S3 bucket ARN"
