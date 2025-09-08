@@ -2,19 +2,13 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: ec2-s3-composition
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-    argocd.argoproj.io/sync-options: ServerSideApply=true
-    description: "This creates EC2 and S3"
-    version: "v1.0.0"
 spec:
+  mode: Resources  # Use legacy mode
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
     kind: XEc2S3
-
   resources:
-  # EC2 Instance
-  - name: ec2-web
+  - name: ec2-instance
     base:
       apiVersion: ec2.aws.upbound.io/v1beta2
       kind: Instance
@@ -22,19 +16,15 @@ spec:
         forProvider:
           instanceType: t3.micro
           region: us-east-1
-          ami: ami-0427090fd1714168b  # Amazon Linux 2023 us-east-1
+          ami: ami-0427090fd1714168b
           tags:
-            Name: "HelloWorld"
-            Component: "web-server"
-
-  # S3 Bucket  
+            Name: "crossplane-ec2"
   - name: s3-bucket
     base:
-      apiVersion: s3.aws.upbound.io/v1beta2
+      apiVersion: s3.aws.upbound.io/v1beta2  
       kind: Bucket
       spec:
         forProvider:
           region: us-east-1
           tags:
-            Environment: "Dev"
-            Name: "MyBucket"
+            Name: "crossplane-bucket"
