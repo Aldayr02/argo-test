@@ -1,7 +1,7 @@
 apiVersion: platform.example.com/v1alpha1
 kind: Ec2S3
 metadata:
-  name: my-infrastructure
+  name: crossplane-composite
   namespace: default
   annotations:
     argocd.argoproj.io/sync-wave: "2"  # Last
