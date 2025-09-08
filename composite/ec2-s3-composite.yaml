@@ -11,31 +11,30 @@ spec:
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
     kind: XEc2S3
+
   resources:
-  # Resource 1 - EC2 Instance
+  # EC2 Instance
   - name: ec2-web
     base:
       apiVersion: ec2.aws.upbound.io/v1beta2
       kind: Instance
-      metadata:
-        labels:
-          component: ec2-web
       spec:
         forProvider:
           instanceType: t3.micro
           region: us-east-1
           ami: ami-0427090fd1714168b  # Amazon Linux 2023 us-east-1
           tags:
-            Name: HelloWorld
-            
-  # Resource 2 - S3 Bucket
+            Name: "HelloWorld"
+            Component: "web-server"
+
+  # S3 Bucket  
   - name: s3-bucket
     base:
       apiVersion: s3.aws.upbound.io/v1beta2
       kind: Bucket
       spec:
         forProvider:
-          region: us-east-1  # Changed to us-east-1 to match EC2
+          region: us-east-1
           tags:
-            Environment: Dev
-            Name: MyBucket
+            Environment: "Dev"
+            Name: "MyBucket"
