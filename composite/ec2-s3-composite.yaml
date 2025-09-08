@@ -1,0 +1,44 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ec2-s3-composition
+  annotations:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" 
+    description: "This creates 2 ec2 and s3"
+    version: "v1.0.0"
+spec:
+  # Reference to the XRD (CompositeResourceDefinition)
+  compositeTypeRef:
+    apiVersion: platform.example.com/v1alpha1
+    kind: XEc2S3  # Fixed naming convention (CamelCase)
+
+  resources:
+  
+  # Resource 1 - EC2 Instance
+  - name: ec2-web
+    base:
+      apiVersion: ec2.aws.upbound.io/v1beta2
+      kind: Instance
+      metadata:
+        labels:
+          component: ec2-web
+      spec:
+        forProvider:
+          instanceType: t3.micro
+          region: us-east-1
+          ami: ami-0abcdef1234567890 
+          tags:
+            Name: HelloWorld
+        
+  # Resource 2 - S3 Bucket
+  - name: s3-bucket
+    base:
+      apiVersion: s3.aws.upbound.io/v1beta2
+      kind: Bucket
+      spec:
+        forProvider:
+          region: us-west-1
+          tags:
+            Environment: Dev
+            Name: MyBucket
