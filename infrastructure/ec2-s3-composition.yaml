@@ -31,7 +31,20 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group Ingress Rule for HTTP
+      # Security Group with proper egress rules
+      - name: web-security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              description: "Security group for web application"
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # HTTP Ingress Rule
       - name: sg-ingress-http
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -45,12 +58,8 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
 
-      # Security Group Ingress Rule for SSH  
+      # SSH Ingress Rule
       - name: sg-ingress-ssh
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -64,23 +73,51 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
 
-      # Basic Security Group (without rules)
-      - name: web-security-group
+      # Egress rule for HTTP (yum repositories)
+      - name: sg-egress-http
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroup
+          kind: SecurityGroupRule
           spec:
             forProvider:
-              description: "Security group for web application"
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
+              type: "egress"
+              protocol: "tcp"
+              fromPort: 80
+              toPort: 80
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+
+      # Egress rule for HTTPS (yum repositories)
+      - name: sg-egress-https
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "egress" 
+              protocol: "tcp"
+              fromPort: 443
+              toPort: 443
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+
+      # Egress rule for DNS
+      - name: sg-egress-dns
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "egress"
+              protocol: "udp"
+              fromPort: 53
+              toPort: 53
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
 
       # EC2 Instance
       - name: ec2-instance
@@ -136,7 +173,6 @@ spec:
                             padding: 40px; 
                             border-radius: 15px; 
                             text-align: center;
-                            backdrop-filter: blur(10px);
                         }
                         h1 { font-size: 2.5em; margin-bottom: 20px; }
                         p { font-size: 1.2em; margin: 10px 0; }
