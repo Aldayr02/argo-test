@@ -1,0 +1,10 @@
+apiVersion: platform.example.com/v1alpha1
+kind: EC2S3Resource
+metadata:
+  name: my-ec2-s3
+spec:
+  parameters:
+    region: "us-east-1"
+    instanceType: "t3.micro"
+    bucketName: "cross-argo-91025"
+    amiId: "ami-0c02fb55956c7d316"  
