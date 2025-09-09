@@ -31,7 +31,7 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group with proper egress rules
+      # Security Group 
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -44,7 +44,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      # HTTP Ingress Rule
       - name: sg-ingress-http
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -59,7 +58,6 @@ spec:
               securityGroupIdSelector:
                 matchControllerRef: true
 
-      # SSH Ingress Rule
       - name: sg-ingress-ssh
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -74,7 +72,6 @@ spec:
               securityGroupIdSelector:
                 matchControllerRef: true
 
-      # Egress rule for HTTP (yum repositories)
       - name: sg-egress-http
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -104,7 +101,6 @@ spec:
               securityGroupIdSelector:
                 matchControllerRef: true
 
-      # Egress rule for DNS
       - name: sg-egress-dns
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -132,6 +128,7 @@ spec:
               associatePublicIpAddress: true
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
+              userDataReplaceOnChange: true 
               userData: |
                 #!/bin/bash
                 # Log everything for debugging
@@ -182,12 +179,6 @@ spec:
                 <body>
                     <div class="container">
                         <h1>🎉 Hello from Crossplane!</h1>
-                        <p>This EC2 instance was deployed via <strong>ArgoCD + Crossplane</strong></p>
-                        <p class="success">✅ Infrastructure as Code SUCCESS!</p>
-                        <p>✅ Managed by: Crossplane</p>
-                        <p>✅ Deployed via: ArgoCD GitOps</p>
-                        <p>✅ Auto-configured with UserData!</p>
-                        <p><em>Your GitOps pipeline is working perfectly! 🚀</em></p>
                     </div>
                 </body>
                 </html>
