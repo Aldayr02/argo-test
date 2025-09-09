@@ -115,6 +115,48 @@ spec:
               securityGroupIdSelector:
                 matchControllerRef: true
 
+      # IAM Role for EC2 to access S3
+      - name: ec2-iam-role
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: Role
+          spec:
+            forProvider:
+              assumeRolePolicy: |
+                {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Action": "sts:AssumeRole",
+                      "Effect": "Allow",
+                      "Principal": {
+                        "Service": "ec2.amazonaws.com"
+                      }
+                    }
+                  ]
+                }
+
+      # S3 Policy attachment
+      - name: s3-policy-attachment
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: RolePolicyAttachment
+          spec:
+            forProvider:
+              policyArn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+              roleSelector:
+                matchControllerRef: true
+
+      # Instance Profile
+      - name: ec2-instance-profile
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: InstanceProfile
+          spec:
+            forProvider:
+              roleSelector:
+                matchControllerRef: true
+
       # EC2 Instance
       - name: ec2-instance
         base:
@@ -129,6 +171,8 @@ spec:
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
               userDataReplaceOnChange: true 
+              iamInstanceProfileSelector:
+                matchControllerRef: true
               userData: |
                 #!/bin/bash
                 # Log everything for debugging
