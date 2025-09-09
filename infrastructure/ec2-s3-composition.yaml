@@ -22,7 +22,7 @@ spec:
           kind: Bucket
           spec:
             forProvider:
-              region: "us-east-1"
+              region: us-east-1
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
@@ -31,111 +31,34 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group 
+      # Security Group with inline rules (simpler)
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
           kind: SecurityGroup
           spec:
             forProvider:
-              description: "Security group for web application"
+              description: "Web security group"
+              ingress:
+              - fromPort: 80
+                toPort: 80
+                protocol: tcp
+                cidrBlocks: ["0.0.0.0/0"]
+              - fromPort: 22
+                toPort: 22
+                protocol: tcp
+                cidrBlocks: ["0.0.0.0/0"]
+              egress:
+              - fromPort: 0
+                toPort: 0
+                protocol: "-1"
+                cidrBlocks: ["0.0.0.0/0"]
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      - name: sg-ingress-http
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "ingress"
-              protocol: "tcp"
-              fromPort: 80
-              toPort: 80
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-ingress-ssh
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "ingress"
-              protocol: "tcp"
-              fromPort: 22
-              toPort: 22
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-egress-http
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "egress"
-              protocol: "tcp"
-              fromPort: 80
-              toPort: 80
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      # Egress rule for HTTPS (yum repositories)
-      - name: sg-egress-https
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "egress" 
-              protocol: "tcp"
-              fromPort: 443
-              toPort: 443
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-egress-dns
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "egress"
-              protocol: "udp"
-              fromPort: 53
-              toPort: 53
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      # IAM Role for EC2 to access S3
+      # IAM Role
       - name: ec2-iam-role
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -145,18 +68,14 @@ spec:
               assumeRolePolicy: |
                 {
                   "Version": "2012-10-17",
-                  "Statement": [
-                    {
-                      "Action": "sts:AssumeRole",
-                      "Effect": "Allow",
-                      "Principal": {
-                        "Service": "ec2.amazonaws.com"
-                      }
-                    }
-                  ]
+                  "Statement": [{
+                    "Action": "sts:AssumeRole",
+                    "Effect": "Allow",
+                    "Principal": {"Service": "ec2.amazonaws.com"}
+                  }]
                 }
 
-      # S3 Policy attachment
+      # Policy Attachment
       - name: s3-policy-attachment
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -164,8 +83,8 @@ spec:
           spec:
             forProvider:
               policyArn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-              roleSelector:
-                matchControllerRef: true
+              roleRef:
+                name: ec2-iam-role
 
       # Instance Profile
       - name: ec2-instance-profile
@@ -174,16 +93,7 @@ spec:
           kind: InstanceProfile
           spec:
             forProvider:
-              roleSelector:
-                matchControllerRef: true
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: metadata.name
-          transforms:
-          - type: string
-            string:
-              fmt: "%s-instance-profile"
+              role: ec2-iam-role
 
       # EC2 Instance
       - name: ec2-instance
@@ -192,90 +102,20 @@ spec:
           kind: Instance
           spec:
             forProvider:
-              instanceType: "t3.micro"
-              ami: "ami-0c02fb55956c7d316"
-              region: "us-east-1"
+              instanceType: t3.micro
+              ami: ami-0c02fb55956c7d316
+              region: us-east-1
               associatePublicIpAddress: true
-              vpcSecurityGroupIdSelector:
-                matchControllerRef: true
-              userDataReplaceOnChange: true 
-              iamInstanceProfile: ""
+              iamInstanceProfile: ec2-instance-profile
+              vpcSecurityGroupIds: []
               userData: |
                 #!/bin/bash
-                # Log everything for debugging
-                exec > >(tee /var/log/user-data.log) 2>&1
-                echo "UserData script started at $(date)"
-                
-                # Install and start httpd (this part stays the same)
-                if command -v dnf &> /dev/null; then
-                    echo "Detected Amazon Linux 2023 - using dnf"
-                    dnf update -y
-                    dnf install -y httpd awscli
-                else
-                    echo "Detected Amazon Linux 2 - using yum"
-                    yum update -y
-                    yum install -y httpd awscli
-                fi
-                
+                yum update -y
+                yum install -y httpd
                 systemctl start httpd
                 systemctl enable httpd
                 
-                # Create a script that fetches content from S3
-                cat > /usr/local/bin/update-webpage.sh << 'EOF'
-                #!/bin/bash
-                BUCKET_NAME="cross-argo-91025"
-                
-                # Try to download webpage from S3
-                if aws s3 cp s3://${BUCKET_NAME}/website/index.html /var/www/html/index.html 2>/dev/null; then
-                    echo "Downloaded webpage from S3"
-                else
-                    # Fallback to default webpage
-                    cat > /var/www/html/index.html << 'FALLBACK'
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Crossplane Demo</title>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            margin: 0; 
-                            padding: 40px;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                            color: white;
-                            min-height: 100vh;
-                        }
-                        .container { 
-                            background: rgba(255,255,255,0.1); 
-                            padding: 40px; 
-                            border-radius: 15px; 
-                            text-align: center;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>🎉 Hello from Crossplane!</h1>
-                        <p>Dynamic content loading from S3!</p>
-                    </div>
-                </body>
-                </html>
-                FALLBACK
-                    echo "Used fallback webpage"
-                fi
-                
-                # Restart httpd to ensure content is served
-                systemctl reload httpd
-                EOF
-                
-                chmod +x /usr/local/bin/update-webpage.sh
-                
-                # Run the script initially
-                /usr/local/bin/update-webpage.sh
-                
-                # Set up cron job to check for updates every 5 minutes
-                echo "*/5 * * * * /usr/local/bin/update-webpage.sh" | crontab -
-                
-                echo "UserData script completed at $(date)"
+                echo '<h1>Hello from Crossplane!</h1>' > /var/www/html/index.html
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
@@ -286,10 +126,10 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.amiId
           toFieldPath: spec.forProvider.ami
-        - type: FromCompositeFieldPath
+        - type: FromEnvironmentFieldPath
           fromFieldPath: metadata.name
-          toFieldPath: spec.forProvider.iamInstanceProfile
+          toFieldPath: spec.forProvider.vpcSecurityGroupIds[0]
           transforms:
           - type: string
             string:
-              fmt: "%s-instance-profile"
+              fmt: "%s-web-security-group"
