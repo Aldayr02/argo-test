@@ -176,6 +176,14 @@ spec:
             forProvider:
               roleSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              fmt: "%s-instance-profile"
 
       # EC2 Instance
       - name: ec2-instance
@@ -191,8 +199,7 @@ spec:
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
               userDataReplaceOnChange: true 
-              iamInstanceProfileSelector:
-                matchControllerRef: true
+              iamInstanceProfile: ""
               userData: |
                 #!/bin/bash
                 # Log everything for debugging
@@ -279,3 +286,10 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.amiId
           toFieldPath: spec.forProvider.ami
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: spec.forProvider.iamInstanceProfile
+          transforms:
+          - type: string
+            string:
+              fmt: "%s-instance-profile"
