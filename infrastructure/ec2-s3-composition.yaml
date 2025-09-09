@@ -57,6 +57,10 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
 
       - name: sg-ingress-ssh
         base:
@@ -71,6 +75,10 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
 
       - name: sg-egress-http
         base:
@@ -85,6 +93,10 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
 
       # Egress rule for HTTPS (yum repositories)
       - name: sg-egress-https
@@ -100,6 +112,10 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
 
       - name: sg-egress-dns
         base:
@@ -114,6 +130,10 @@ spec:
               cidrBlocks: ["0.0.0.0/0"]
               securityGroupIdSelector:
                 matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
 
       # IAM Role for EC2 to access S3
       - name: ec2-iam-role
