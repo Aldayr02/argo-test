@@ -41,7 +41,7 @@ spec:
           spec:
             forProvider:
               instanceType: "t3.micro"
-              ami: "ami-0023921b4fcd5382b"
+              ami: "ami-00ca32bbc84273381"
               region: "us-east-1"
         patches:
         - type: FromCompositeFieldPath
