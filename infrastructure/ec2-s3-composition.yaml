@@ -135,23 +135,31 @@ spec:
                 exec > >(tee /var/log/user-data.log) 2>&1
                 echo "UserData script started at $(date)"
                 
-                # Check which OS we're running
+                # Install and start httpd (this part stays the same)
                 if command -v dnf &> /dev/null; then
                     echo "Detected Amazon Linux 2023 - using dnf"
                     dnf update -y
-                    dnf install -y httpd
+                    dnf install -y httpd awscli
                 else
                     echo "Detected Amazon Linux 2 - using yum"
                     yum update -y
-                    yum install -y httpd
+                    yum install -y httpd awscli
                 fi
                 
-                # Start and enable httpd
                 systemctl start httpd
                 systemctl enable httpd
                 
-                # Create webpage
-                cat > /var/www/html/index.html << 'EOF'
+                # Create a script that fetches content from S3
+                cat > /usr/local/bin/update-webpage.sh << 'EOF'
+                #!/bin/bash
+                BUCKET_NAME="cross-argo-91025"
+                
+                # Try to download webpage from S3
+                if aws s3 cp s3://${BUCKET_NAME}/website/index.html /var/www/html/index.html 2>/dev/null; then
+                    echo "Downloaded webpage from S3"
+                else
+                    # Fallback to default webpage
+                    cat > /var/www/html/index.html << 'FALLBACK'
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -171,21 +179,30 @@ spec:
                             border-radius: 15px; 
                             text-align: center;
                         }
-                        h1 { font-size: 2.5em; margin-bottom: 20px; }
-                        p { font-size: 1.2em; margin: 10px 0; }
-                        .success { color: #50ff50; font-weight: bold; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         <h1>🎉 Hello from Crossplane!</h1>
+                        <p>Dynamic content loading from S3!</p>
                     </div>
                 </body>
                 </html>
+                FALLBACK
+                    echo "Used fallback webpage"
+                fi
+                
+                # Restart httpd to ensure content is served
+                systemctl reload httpd
                 EOF
                 
-                # Create health check
-                echo "OK" > /var/www/html/health
+                chmod +x /usr/local/bin/update-webpage.sh
+                
+                # Run the script initially
+                /usr/local/bin/update-webpage.sh
+                
+                # Set up cron job to check for updates every 5 minutes
+                echo "*/5 * * * * /usr/local/bin/update-webpage.sh" | crontab -
                 
                 echo "UserData script completed at $(date)"
         patches:
