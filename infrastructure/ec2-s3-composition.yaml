@@ -183,7 +183,6 @@ spec:
           transforms:
           - type: string
             string:
-              type: fmt
               fmt: "%s-instance-profile"
 
       # EC2 Instance
@@ -293,5 +292,4 @@ spec:
           transforms:
           - type: string
             string:
-              type: fmt
               fmt: "%s-instance-profile"
