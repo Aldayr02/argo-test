@@ -31,7 +31,7 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group for web traffic
+      # Security Group
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -65,7 +65,7 @@ spec:
             string:
               fmt: "%s-web-sg"
 
-      # EC2 Instance
+      # EC2 Instance with fixed UserData
       - name: ec2-instance
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -73,34 +73,77 @@ spec:
           spec:
             forProvider:
               instanceType: "t3.micro"
-              ami: "ami-0023921b4fcd5382b" 
+              ami: "ami-0c02fb55956c7d316"
               region: "us-east-1"
               associatePublicIpAddress: true
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
               userData: |
                 #!/bin/bash
-                yum update -y
-                yum install -y docker
-                systemctl start docker
-                systemctl enable docker
-                usermod -a -G docker ec2-user
+                # Log everything for debugging
+                exec > >(tee /var/log/user-data.log) 2>&1
+                echo "UserData script started at $(date)"
                 
-                # Run HashiCorp demo container
-                docker run -d \
-                  --name web-app \
-                  --restart unless-stopped \
-                  -p 80:80 \
-                  -e PORT=80 \
-                  hashicorp/http-echo:latest \
-                  -text="🎉 Hello from Crossplane + ArgoCD! 
-                This EC2 instance was deployed automatically using GitOps.
+                # Check which OS we're running
+                if command -v dnf &> /dev/null; then
+                    echo "Detected Amazon Linux 2023 - using dnf"
+                    dnf update -y
+                    dnf install -y httpd
+                else
+                    echo "Detected Amazon Linux 2 - using yum"
+                    yum update -y
+                    yum install -y httpd
+                fi
                 
-                ✅ Managed by: Crossplane
-                ✅ Deployed via: ArgoCD  
-                ✅ Infrastructure as Code: SUCCESS!
+                # Start and enable httpd
+                systemctl start httpd
+                systemctl enable httpd
                 
-                Instance provisioned in $(curl -s http://169.254.169.254/latest/meta-data/placement/region) region"
+                # Create webpage
+                cat > /var/www/html/index.html << 'EOF'
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Crossplane Demo</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 0; 
+                            padding: 40px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            color: white;
+                            min-height: 100vh;
+                        }
+                        .container { 
+                            background: rgba(255,255,255,0.1); 
+                            padding: 40px; 
+                            border-radius: 15px; 
+                            text-align: center;
+                            backdrop-filter: blur(10px);
+                        }
+                        h1 { font-size: 2.5em; margin-bottom: 20px; }
+                        p { font-size: 1.2em; margin: 10px 0; }
+                        .success { color: #50ff50; font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🎉 Hello from Crossplane!</h1>
+                        <p>This EC2 instance was deployed via <strong>ArgoCD + Crossplane</strong></p>
+                        <p class="success">✅ Infrastructure as Code SUCCESS!</p>
+                        <p>✅ Managed by: Crossplane</p>
+                        <p>✅ Deployed via: ArgoCD GitOps</p>
+                        <p>✅ Auto-configured with UserData!</p>
+                        <p><em>Your GitOps pipeline is working perfectly! 🚀</em></p>
+                    </div>
+                </body>
+                </html>
+                EOF
+                
+                # Create health check
+                echo "OK" > /var/www/html/health
+                
+                echo "UserData script completed at $(date)"
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
