@@ -2,6 +2,7 @@ apiVersion: platform.example.com/v1alpha1
 kind: EC2S3Resource
 metadata:
   name: my-ec2-s3
+  argocd.argoproj.io/sync-wave: '1'
 spec:
   parameters:
     region: "us-east-1"
