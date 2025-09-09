@@ -1,14 +1,10 @@
 apiVersion: platform.example.com/v1alpha1
-kind: Ec2S3
+kind: EC2S3Resource
 metadata:
-  name: ec2-s3-claim
-  namespace: demo1
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-    argocd.argoproj.io/sync-options: ServerSideApply=true
+  name: my-ec2-s3
 spec:
-  projectName: "myapp"
-  environment: "dev"
-  ec2InstanceType: "t3.micro"
-  ec2Region: "us-east-1"
-  s3Region: "us-east-1"
+  parameters:
+    region: "us-west-1"
+    instanceType: "t3.micro"
+    bucketName: "cross-argo-91025"
+    amiId: "ami-0c02fb55956c7d316"  
