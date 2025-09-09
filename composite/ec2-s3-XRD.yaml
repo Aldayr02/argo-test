@@ -2,6 +2,8 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
   name: xec2s3resources.platform.example.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1" 
 spec:
   group: platform.example.com
   versions:
