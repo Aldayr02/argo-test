@@ -31,7 +31,45 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group  
+      # Security Group Ingress Rule for HTTP
+      - name: sg-ingress-http
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              protocol: "tcp"
+              fromPort: 80
+              toPort: 80
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Security Group Ingress Rule for SSH  
+      - name: sg-ingress-ssh
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              protocol: "tcp"
+              fromPort: 22
+              toPort: 22
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Basic Security Group (without rules)
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -39,20 +77,6 @@ spec:
           spec:
             forProvider:
               description: "Security group for web application"
-              ingress:
-              - fromPort: 80
-                toPort: 80
-                protocol: "tcp"
-                cidrBlocks: ["0.0.0.0/0"]
-              - fromPort: 22
-                toPort: 22
-                protocol: "tcp"
-                cidrBlocks: ["0.0.0.0/0"]
-              egress:
-              - fromPort: 0
-                toPort: 0
-                protocol: "-1"
-                cidrBlocks: ["0.0.0.0/0"]
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
