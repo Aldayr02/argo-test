@@ -30,9 +30,6 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.bucketName
-          toFieldPath: spec.forProvider.bucket
 
       # EC2 Instance
       - name: ec2-instance
