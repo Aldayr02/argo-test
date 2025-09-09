@@ -3,8 +3,7 @@ kind: CompositeResourceDefinition
 metadata:
   name: xec2s3resources.platform.example.com
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-weight: "-5"
+    argocd.argoproj.io/sync-wave: "-2" 
 spec:
   group: platform.example.com
   versions:
