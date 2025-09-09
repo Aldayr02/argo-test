@@ -2,8 +2,6 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: ec2-s3-composition
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1" 
 spec:
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
@@ -33,6 +31,40 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
+      # Security Group for web traffic
+      - name: web-security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              description: "Security group for web application"
+              ingress:
+              - fromPort: 80
+                toPort: 80
+                protocol: "tcp"
+                cidrBlocks: ["0.0.0.0/0"]
+              - fromPort: 22
+                toPort: 22
+                protocol: "tcp"
+                cidrBlocks: ["0.0.0.0/0"]
+              egress:
+              - fromPort: 0
+                toPort: 0
+                protocol: "-1"
+                cidrBlocks: ["0.0.0.0/0"]
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              fmt: "%s-web-sg"
+
       # EC2 Instance
       - name: ec2-instance
         base:
@@ -41,8 +73,34 @@ spec:
           spec:
             forProvider:
               instanceType: "t3.micro"
-              ami: "ami-00ca32bbc84273381"
+              ami: "ami-0023921b4fcd5382b" 
               region: "us-east-1"
+              associatePublicIpAddress: true
+              vpcSecurityGroupIdSelector:
+                matchControllerRef: true
+              userData: |
+                #!/bin/bash
+                yum update -y
+                yum install -y docker
+                systemctl start docker
+                systemctl enable docker
+                usermod -a -G docker ec2-user
+                
+                # Run HashiCorp demo container
+                docker run -d \
+                  --name web-app \
+                  --restart unless-stopped \
+                  -p 80:80 \
+                  -e PORT=80 \
+                  hashicorp/http-echo:latest \
+                  -text="🎉 Hello from Crossplane + ArgoCD! 
+                This EC2 instance was deployed automatically using GitOps.
+                
+                ✅ Managed by: Crossplane
+                ✅ Deployed via: ArgoCD  
+                ✅ Infrastructure as Code: SUCCESS!
+                
+                Instance provisioned in $(curl -s http://169.254.169.254/latest/meta-data/placement/region) region"
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
@@ -50,3 +108,6 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.instanceType
           toFieldPath: spec.forProvider.instanceType
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.amiId
+          toFieldPath: spec.forProvider.ami

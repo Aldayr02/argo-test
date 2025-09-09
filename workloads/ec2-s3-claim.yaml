@@ -9,4 +9,4 @@ spec:
     region: "us-east-1"
     instanceType: "t3.micro"
     bucketName: "cross-argo-91025"
-    amiId: "ami-00ca32bbc84273381"  
+    amiId: "ami-0023921b4fcd5382b"  
