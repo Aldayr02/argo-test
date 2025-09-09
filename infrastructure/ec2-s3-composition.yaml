@@ -58,44 +58,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      # IAM Role
-      - name: ec2-iam-role
-        base:
-          apiVersion: iam.aws.upbound.io/v1beta1
-          kind: Role
-          spec:
-            forProvider:
-              assumeRolePolicy: |
-                {
-                  "Version": "2012-10-17",
-                  "Statement": [{
-                    "Action": "sts:AssumeRole",
-                    "Effect": "Allow",
-                    "Principal": {"Service": "ec2.amazonaws.com"}
-                  }]
-                }
-
-      # Policy Attachment
-      - name: s3-policy-attachment
-        base:
-          apiVersion: iam.aws.upbound.io/v1beta1
-          kind: RolePolicyAttachment
-          spec:
-            forProvider:
-              policyArn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-              roleSelector:
-                matchControllerRef: true
-
-      # Instance Profile
-      - name: ec2-instance-profile
-        base:
-          apiVersion: iam.aws.upbound.io/v1beta1
-          kind: InstanceProfile
-          spec:
-            forProvider:
-              roleSelector:
-                matchControllerRef: true
-
       # EC2 Instance
       - name: ec2-instance
         base:
@@ -115,7 +77,7 @@ spec:
                 yum install -y httpd
                 systemctl start httpd
                 systemctl enable httpd
-                echo '<h1>Hello from Crossplane!</h1>' > /var/www/html/index.html
+                echo '<h1>Hello from Crossplane!</h1><p>S3 bucket and EC2 instance created successfully!</p>' > /var/www/html/index.html
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
@@ -126,12 +88,3 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.amiId
           toFieldPath: spec.forProvider.ami
-        # Reference the instance profile by name
-        - type: FromCompositeFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: spec.forProvider.iamInstanceProfile
-          transforms:
-          - type: string
-            string:
-              type: format
-              fmt: "%s-ec2-instance-profile"
