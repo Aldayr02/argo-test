@@ -31,7 +31,7 @@ spec:
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: metadata.name
 
-      # Security Group with inline rules (simpler)
+      # Security Group
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -83,8 +83,8 @@ spec:
           spec:
             forProvider:
               policyArn: "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-              roleRef:
-                name: ec2-iam-role
+              roleSelector:
+                matchControllerRef: true
 
       # Instance Profile
       - name: ec2-instance-profile
@@ -93,7 +93,8 @@ spec:
           kind: InstanceProfile
           spec:
             forProvider:
-              role: ec2-iam-role
+              roleSelector:
+                matchControllerRef: true
 
       # EC2 Instance
       - name: ec2-instance
@@ -106,15 +107,16 @@ spec:
               ami: ami-0c02fb55956c7d316
               region: us-east-1
               associatePublicIpAddress: true
-              iamInstanceProfile: ec2-instance-profile
-              vpcSecurityGroupIds: []
+              vpcSecurityGroupIdSelector:
+                matchControllerRef: true
+              iamInstanceProfileSelector:
+                matchControllerRef: true
               userData: |
                 #!/bin/bash
                 yum update -y
                 yum install -y httpd
                 systemctl start httpd
                 systemctl enable httpd
-                
                 echo '<h1>Hello from Crossplane!</h1>' > /var/www/html/index.html
         patches:
         - type: FromCompositeFieldPath
@@ -126,10 +128,3 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.amiId
           toFieldPath: spec.forProvider.ami
-        - type: FromEnvironmentFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: spec.forProvider.vpcSecurityGroupIds[0]
-          transforms:
-          - type: string
-            string:
-              fmt: "%s-web-security-group"
