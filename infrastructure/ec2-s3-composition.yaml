@@ -109,8 +109,6 @@ spec:
               associatePublicIpAddress: true
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
-              iamInstanceProfileSelector:
-                matchControllerRef: true
               userData: |
                 #!/bin/bash
                 yum update -y
@@ -128,3 +126,12 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.amiId
           toFieldPath: spec.forProvider.ami
+        # Reference the instance profile by name
+        - type: FromCompositeFieldPath
+          fromFieldPath: metadata.name
+          toFieldPath: spec.forProvider.iamInstanceProfile
+          transforms:
+          - type: string
+            string:
+              type: fmt
+              fmt: "%s-ec2-instance-profile"
