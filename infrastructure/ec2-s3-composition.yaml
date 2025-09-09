@@ -133,5 +133,5 @@ spec:
           transforms:
           - type: string
             string:
-              type: fmt
+              type: format
               fmt: "%s-ec2-instance-profile"
