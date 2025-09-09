@@ -2,6 +2,9 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: ec2-s3-composition
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-weight: "-4"
 spec:
   compositeTypeRef:
     apiVersion: platform.example.com/v1alpha1
