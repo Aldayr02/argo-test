@@ -30,9 +30,29 @@ spec:
                   roleName:
                     type: string
                     description: "Name of the IAM role"
-                  bucketName:
+                  bucketName: 
                     type: string
-                    description: "S3 bucket name for access permissions"
+                    description: "S3 bucket name - will be created and granted access to"
+                  ec2:
+                    type: object
+                    properties:
+                      instanceName:
+                        type: string
+                        description: "Name of the EC2 instance"
+                      amiId:
+                        type: string
+                        description: "AMI ID for the EC2 instance"
+                        default: "ami-06c3254d99b7c0139"
+                      instanceType:
+                        type: string
+                        description: "EC2 instance type"
+                        default: "t3.micro"
+                    required:
+                    - instanceName
+                  region:
+                    type: string
+                    description: "AWS region"
+                    default: "us-east-1"
                   tags:
                     type: object
                     additionalProperties:
@@ -41,17 +61,26 @@ spec:
                 required:
                 - roleName
                 - bucketName
+                - ec2
             required:
             - parameters
           status:
             type: object
             properties:
+              conditions:
+                description: Conditions of the resource.
+                type: array
+                items:
+                  type: object
               roleArn:
                 type: string
                 description: "ARN of the created IAM role"
               instanceProfileArn:
                 type: string
                 description: "ARN of the created instance profile"
-              ready:
-                type: boolean
-                description: "Whether the role is ready for use"
+              ec2InstanceId:
+                type: string
+                description: "ID of the created EC2 instance"
+              s3BucketName:
+                type: string
+                description: "Name of the created S3 bucket"

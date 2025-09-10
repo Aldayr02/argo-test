@@ -41,11 +41,16 @@ spec:
               name: default
         patches:
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.roleName  # ← Fixed
+          fromFieldPath: spec.parameters.roleName  
           toFieldPath: metadata.name
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.bucketName  # ← Fixed
+          fromFieldPath: spec.parameters.bucketName  
           toFieldPath: spec.forProvider.tags.BucketAccess
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      
+      
       - name: s3-access-policy
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -57,7 +62,7 @@ spec:
               name: default
         patches:
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.bucketName  # ← Fixed
+          fromFieldPath: spec.parameters.bucketName  
           toFieldPath: spec.forProvider.policy
           transforms:
           - type: string
@@ -81,13 +86,14 @@ spec:
                     ]
                 }
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.roleName  # ← Added for policy naming
+          fromFieldPath: spec.parameters.roleName  
           toFieldPath: metadata.name
           transforms:
           - type: string
             string:
               type: Format
               fmt: "%s-s3-policy"
+      
       - name: role-policy-attachment
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -112,8 +118,59 @@ spec:
               name: default
         patches:
         - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.roleName  # ← Fixed
+          fromFieldPath: spec.parameters.roleName  
           toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-instance-profile"
+      
+      - name: s3-bucket
+        base:
+          apiVersion: s3.aws.upbound.io/v1beta2
+          kind: Bucket
+          spec:
+            forProvider:
+              region: us-east-1
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: ec2-instance
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta2
+          kind: Instance
+          spec:
+            forProvider:
+              ami: ami-06c3254d99b7c0139
+              instanceType: t3.micro
+              region: us-east-1
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.instanceName
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.amiId
+          toFieldPath: spec.forProvider.ami
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.instanceType
+          toFieldPath: spec.forProvider.instanceType
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        # Connect EC2 to Instance Profile
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: spec.forProvider.iamInstanceProfile
           transforms:
           - type: string
             string:

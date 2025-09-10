@@ -8,4 +8,10 @@ metadata:
 spec:
   parameters:
     roleName: "my-ec2-s3-access-role"
-    bucketName: "cross-argo-100925"
+    bucketName: "cross-argo-100925" 
+    region: "us-east-1"
+    ec2:
+      instanceName: "my-web-server"
+      amiId: "ami-06c3254d99b7c0139"
+      instanceType: "t3.micro"  
+
