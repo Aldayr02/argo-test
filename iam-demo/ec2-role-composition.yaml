@@ -237,8 +237,6 @@ spec:
               ami: ami-06c3254d99b7c0139
               instanceType: t3.micro
               region: us-east-1
-              securityGroupSelector:
-                matchControllerRef: true
             providerConfigRef:
               name: default
         patches:
@@ -257,6 +255,14 @@ spec:
         - type: FromCompositeFieldPath 
           fromFieldPath: spec.parameters.ec2.keyName
           toFieldPath: spec.forProvider.keyName
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: spec.forProvider.securityGroups[0]
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-web-sg"
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.bucketName
           toFieldPath: spec.forProvider.userData
