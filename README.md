@@ -3,7 +3,6 @@
 ### Paso 1: Instalar K3s
 
 ```bash
-# Instalación básica de K3s
 curl -sfL https://get.k3s.io | sh -
 
 ```
@@ -11,31 +10,22 @@ curl -sfL https://get.k3s.io | sh -
 ### Paso 2: Verificar la instalación
 
 ```bash
-# Verificar que K3s está corriendo
+
 sudo systemctl status k3s
 
-# Verificar los nodos
 sudo k3s kubectl get nodes
 
-# Configurar kubectl para usuario no-root (opcional)
 mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $USER:$USER ~/.kube/config
 export KUBECONFIG=~/.kube/config
 
 sudo yum install bash-completion
-
-# Agregar el autocompletado de kubectl a tu sesión actual
 source <(kubectl completion bash)
-
-# Agregarlo permanentemente a tu .bashrc
 echo 'source <(kubectl completion bash)' >> ~/.bashrc
-
-# También puedes crear un alias 'k' para kubectl con autocompletado
 echo 'alias k=kubectl' >> ~/.bashrc
 echo 'complete -o default -F __start_kubectl k' >> ~/.bashrc
 
-# Recargar tu bashrc
 source ~/.bashrc
 
 ```
@@ -45,37 +35,28 @@ source ~/.bashrc
 ### Paso 1: Crear namespace y instalar ArgoCD
 
 ```bash
-# Crear namespace
 kubectl create namespace argocd
 
-# Instalar ArgoCD
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
 ### Paso 2: Esperar a que los pods estén listos
 
 ```bash
-# Verificar que todos los pods están corriendo
 kubectl get pods -n argocd
 
-# Esperar a que estén todos en Running
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 ```
 
 ### Paso 3: Exponer ArgoCD UI
 
 ```bash
-# Opción 1: Port-forward (para desarrollo)
-kubectl port-forward svc/argocd-server -n argocd 8080:443 &
-
-# Opción 2: Cambiar a NodePort (para acceso externo)
 kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort"}}'
 ```
 
 ### Paso 4: Obtener contraseña inicial
 
 ```bash
-# Obtener la contraseña inicial del admin
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
 
 # Usuario: admin
