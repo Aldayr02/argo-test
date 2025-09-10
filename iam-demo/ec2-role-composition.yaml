@@ -57,13 +57,13 @@ spec:
             providerConfigRef:
               name: default
         patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.bucketName  
-          toFieldPath: spec.forProvider.policy
-          transforms:
-          - type: string
+        - type: CombineFromComposite
+          combine:
+            variables:
+            - fromFieldPath: spec.parameters.bucketName
+            - fromFieldPath: spec.parameters.bucketName 
+            strategy: string
             string:
-              type: Format
               fmt: |
                 {
                     "Version": "2012-10-17",
@@ -81,6 +81,7 @@ spec:
                         }
                     ]
                 }
+          toFieldPath: spec.forProvider.policy
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.roleName  
           toFieldPath: metadata.name
