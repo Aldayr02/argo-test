@@ -1,0 +1,121 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ec2-role-composition
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.io/v1alpha1
+    kind: XEC2Role
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: s3-access-role
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: Role
+          spec:
+            forProvider:
+              assumeRolePolicyDocument: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "ec2.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                }
+              description: "IAM role for EC2 instances created by Crossplane"
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  # ← Fixed
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName  # ← Fixed
+          toFieldPath: spec.forProvider.tags.BucketAccess
+      - name: s3-access-policy
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: Policy
+          spec:
+            forProvider:
+              description: "S3 access policy for Crossplane managed role"
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName  # ← Fixed
+          toFieldPath: spec.forProvider.policy
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject",
+                                "s3:ListBucket"
+                            ],
+                            "Resource": [
+                                "arn:aws:s3:::%s",
+                                "arn:aws:s3:::%s/*"
+                            ]
+                        }
+                    ]
+                }
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  # ← Added for policy naming
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-s3-policy"
+      - name: role-policy-attachment
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: RolePolicyAttachment
+          spec:
+            forProvider:
+              roleSelector:
+                matchControllerRef: true
+              policyArnSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+      - name: instance-profile
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: InstanceProfile
+          spec:
+            forProvider:
+              roleSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  # ← Fixed
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-instance-profile"

@@ -1,0 +1,9 @@
+apiVersion: aws.platform.io/v1alpha1
+kind: EC2Role
+metadata:
+  name: my-ec2-s3-role
+  namespace: default
+spec:
+  parameters:
+    roleName: "my-ec2-s3-access-role"
+    bucketName: "cross-argo-100925"

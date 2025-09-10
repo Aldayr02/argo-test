@@ -1,0 +1,57 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xec2roles.aws.platform.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  group: aws.platform.io
+  names:
+    kind: XEC2Role
+    plural: xec2roles
+  claimNames:
+    kind: EC2Role
+    plural: ec2roles
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                properties:
+                  roleName:
+                    type: string
+                    description: "Name of the IAM role"
+                  bucketName:
+                    type: string
+                    description: "S3 bucket name for access permissions"
+                  tags:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: "Tags to apply to resources"
+                required:
+                - roleName
+                - bucketName
+            required:
+            - parameters
+          status:
+            type: object
+            properties:
+              roleArn:
+                type: string
+                description: "ARN of the created IAM role"
+              instanceProfileArn:
+                type: string
+                description: "ARN of the created instance profile"
+              ready:
+                type: boolean
+                description: "Whether the role is ready for use"
