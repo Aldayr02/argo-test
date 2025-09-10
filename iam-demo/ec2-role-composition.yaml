@@ -46,9 +46,6 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.bucketName  
           toFieldPath: spec.forProvider.tags.BucketAccess
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
       
       - name: s3-access-policy
         base:
