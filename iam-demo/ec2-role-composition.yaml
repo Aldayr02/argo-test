@@ -167,6 +167,9 @@ spec:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath 
+          fromFieldPath: spec.parameters.ec2.keyName
+          toFieldPath: spec.forProvider.keyName
         # Connect EC2 to Instance Profile
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.roleName

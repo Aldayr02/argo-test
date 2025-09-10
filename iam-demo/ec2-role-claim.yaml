@@ -14,4 +14,5 @@ spec:
       instanceName: "my-web-server"
       amiId: "ami-06c3254d99b7c0139"
       instanceType: "t3.micro"  
+      keyName: "argocdkey" 
 

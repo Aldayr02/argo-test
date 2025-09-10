@@ -47,6 +47,9 @@ spec:
                         type: string
                         description: "EC2 instance type"
                         default: "t3.micro"
+                      keyName:  # ← Add this
+                        type: string
+                        description: "EC2 key pair name for SSH access"
                     required:
                     - instanceName
                   region:
