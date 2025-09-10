@@ -3,7 +3,7 @@ kind: EC2Role
 metadata:
   name: my-ec2-s3-role
   annotations:
-    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   parameters:
     roleName: "my-ec2-s3-access-role"
