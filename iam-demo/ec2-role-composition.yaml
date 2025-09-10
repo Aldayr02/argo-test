@@ -50,7 +50,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
       
-      
       - name: s3-access-policy
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -106,6 +105,7 @@ spec:
                 matchControllerRef: true
             providerConfigRef:
               name: default
+
       - name: instance-profile
         base:
           apiVersion: iam.aws.upbound.io/v1beta1
@@ -126,6 +126,91 @@ spec:
               type: Format
               fmt: "%s-instance-profile"
       
+      # Security Group
+      - name: web-security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              description: "Web security group"
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-web-sg"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Ingress Rules
+      - name: sg-rule-http
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 80
+              toPort: 80
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: sg-rule-ssh
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 22
+              toPort: 22
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Egress Rule
+      - name: sg-rule-egress-all
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "egress"
+              fromPort: 0
+              toPort: 0
+              protocol: "-1"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
       - name: s3-bucket
         base:
           apiVersion: s3.aws.upbound.io/v1beta2
@@ -152,6 +237,8 @@ spec:
               ami: ami-06c3254d99b7c0139
               instanceType: t3.micro
               region: us-east-1
+              securityGroupSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: default
         patches:
@@ -170,7 +257,56 @@ spec:
         - type: FromCompositeFieldPath 
           fromFieldPath: spec.parameters.ec2.keyName
           toFieldPath: spec.forProvider.keyName
-        # Connect EC2 to Instance Profile
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName
+          toFieldPath: spec.forProvider.userData
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: |
+                #!/bin/bash
+                yum update -y
+                yum install -y httpd
+                systemctl start httpd
+                systemctl enable httpd
+                
+                cat > /usr/local/bin/sync-web.sh << 'EOF'
+                #!/bin/bash
+                aws s3 sync s3://%s/web/ /var/www/html/ --region us-east-1
+                EOF
+                chmod +x /usr/local/bin/sync-web.sh
+                
+                /usr/local/bin/sync-web.sh
+                
+                echo "*/5 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
+                
+                if [ ! -f /var/www/html/index.html ]; then
+                  cat > /var/www/html/index.html << 'HTMLEOF'
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Mi Servidor Web con Crossplane</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; }
+                        .container { max-width: 800px; margin: 0 auto; }
+                        .header { background: #f4f4f4; padding: 20px; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚀 ¡Servidor Web Funcionando!</h1>
+                            <p>Esta página web está servida desde un EC2 creado con Crossplane</p>
+                            <p>Los archivos se sincronizan desde S3: %s</p>
+                        </div>
+                        <h2>Información del Sistema:</h2>
+                        <p>Bucket S3: %s</p>
+                    </div>
+                </body>
+                </html>
+                HTMLEOF
+                fi
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.roleName
           toFieldPath: spec.forProvider.iamInstanceProfile

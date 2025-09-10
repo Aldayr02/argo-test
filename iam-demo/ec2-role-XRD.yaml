@@ -50,6 +50,12 @@ spec:
                       keyName:  # ← Add this
                         type: string
                         description: "EC2 key pair name for SSH access"
+                      allowedPorts:  # ← Nuevo
+                        type: array
+                        items:
+                          type: integer
+                        description: "Ports to allow in security group"
+                        default: [80, 443, 22]
                     required:
                     - instanceName
                   region:
