@@ -4,6 +4,7 @@ metadata:
   name: my-ec2-s3-role
   annotations:
     argocd.argoproj.io/sync-wave: "20"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true 
 spec:
   parameters:
     roleName: "my-ec2-s3-access-role"
