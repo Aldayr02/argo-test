@@ -80,17 +80,13 @@ argocd login localhost:8080 --username admin --password $(kubectl -n argocd get 
 ### Paso 1: Instalar Crossplane usando Helm
 
 ```bash
-# Instalar Helm si no lo tienes
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# Agregar el repositorio de Crossplane
 helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm repo update
 
-# Crear namespace para Crossplane
 kubectl create namespace crossplane-system
 
-# Instalar Crossplane
 helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system \
   --create-namespace
