@@ -276,9 +276,9 @@ spec:
                 cat > /usr/local/bin/sync-web.sh << 'EOF'
                 #!/bin/bash
                 LOG_FILE="/var/log/sync-web.log"
-                echo "$(date): Starting sync from s3://%s/web/" >> $LOG_FILE
+                echo "$(date): Starting sync from s3://%[1]s/web/" >> $LOG_FILE
                 
-                aws s3 sync s3://%s/web/ /var/www/html/ --region us-east-1 >> $LOG_FILE 2>&1
+                aws s3 sync s3://%[1]s/web/ /var/www/html/ --region us-east-1 >> $LOG_FILE 2>&1
                 
                 if [ $? -eq 0 ]; then
                     echo "$(date): Sync completed successfully" >> $LOG_FILE
@@ -295,7 +295,7 @@ spec:
                 /usr/local/bin/sync-web.sh
                 
                 # Add to crontab
-                echo "*/5 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
+                echo "*/2 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
                 systemctl restart crond
                 
                 # Create default index if it doesn't exist after sync
@@ -316,10 +316,10 @@ spec:
                         <div class="header">
                             <h1>🚀 ¡Servidor Web Funcionando!</h1>
                             <p>Esta página web está servida desde un EC2 creado con Crossplane</p>
-                            <p>Los archivos se sincronizan desde S3: %s</p>
+                            <p>Los archivos se sincronizan desde S3: %[1]s</p>
                         </div>
                         <h2>Información del Sistema:</h2>
-                        <p>Bucket S3: %s</p>
+                        <p>Bucket S3: %[1]s</p>
                     </div>
                 </body>
                 </html>
