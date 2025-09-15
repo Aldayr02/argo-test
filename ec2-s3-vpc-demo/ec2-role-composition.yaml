@@ -73,6 +73,7 @@ spec:
               name: public-subnet
           spec:
             forProvider:
+              availabilityZone: us-east-1a
               vpcIdSelector:
                 matchControllerRef: true
               mapPublicIpOnLaunch: true
