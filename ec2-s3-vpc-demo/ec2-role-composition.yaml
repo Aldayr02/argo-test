@@ -289,10 +289,10 @@ spec:
           spec:
             forProvider:
               description: "Web security groupasdasdasdasd"
+              vpcIdSelector:
+                matchControllerRef: true
             providerConfigRef:
               name: default
-            vpcIdSelector:
-              matchControllerRef: true
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.roleName
