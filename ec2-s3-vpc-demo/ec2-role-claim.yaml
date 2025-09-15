@@ -1,18 +1,19 @@
 apiVersion: aws.platform.io/v1alpha1
 kind: EC2Role
 metadata:
-  name: my-ec2-s3-role
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true 
+  name: web-server-demo
 spec:
   parameters:
-    roleName: "my-ec2-s3-access-role"
-    bucketName: "cross-argo-100925" 
-    region: "us-east-1"
+    roleName: my-ec2-s3-access-role
+    bucketName: cross-argo-100925
+    region: us-east-1
+    cidrBlock: 10.0.0.0/16
+    publicSubnetCidr: 10.0.1.0/24
+    privateSubnetCidr: 10.0.2.0/24
+    enableDnsSupport: true
+    enableDnsHostnames: true
     ec2:
-      instanceName: "my-web-server"
-      amiId: "ami-06c3254d99b7c0139"
-      instanceType: "t3.micro"  
-      keyName: "argocdkey" 
-
+      instanceName: web-server-server
+      amiId: ami-06c3254d99b7c0139  
+      instanceType: t3.micro
+      keyName: argocdkey   

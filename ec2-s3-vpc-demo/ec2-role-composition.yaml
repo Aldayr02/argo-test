@@ -10,6 +10,161 @@ spec:
     kind: XEC2Role
   mode: Pipeline
   pipeline:
+
+  - step: network-infrastructure
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+
+      - name: vpc
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: VPC
+          metadata:
+            name: vpc-dev-demo
+          spec:
+            forProvider:
+              enableDnsSupport: true
+              enableDnsHostnames: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cidrBlock
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.enableDnsSupport
+          toFieldPath: spec.forProvider.enableDnsSupport
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.enableDnsHostnames
+          toFieldPath: spec.forProvider.enableDnsHostnames
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.vpcId
+      
+      - name: internet-gateway
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: InternetGateway
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      
+      - name: public-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: public-subnet
+            labels:
+              name: public-subnet
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+              mapPublicIpOnLaunch: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.publicSubnetCidr
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.publicSubnetId
+      
+      - name: private-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: private-subnet
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+              mapPublicIpOnLaunch: false
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.privateSubnetCidr
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.privateSubnetId
+      
+      - name: public-route-table
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTable
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      
+      - name: public-route
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationCidrBlock: "0.0.0.0/0"
+              routeTableIdSelector:
+                matchControllerRef: true
+              gatewayIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+          
+      - name: public-route-table-association
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTableAssociation
+          spec:
+            forProvider:
+              routeTableIdSelector:
+                matchControllerRef: true
+              subnetIdSelector:
+                matchControllerRef: true
+                matchLabels:
+                  name: public-subnet
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
   - step: infrastructure
     functionRef:
       name: function-patch-and-transform
@@ -125,7 +280,6 @@ spec:
               type: Format
               fmt: "%s-instance-profile"
       
-      # Security Group
       - name: web-security-group
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -135,8 +289,8 @@ spec:
               description: "Web security group"
             providerConfigRef:
               name: default
-            vpcIdRef:
-              name: vpc-dev-demo
+            vpcIdSelector:
+              matchControllerRef: true
         patches:
         - type: FromCompositeFieldPath
           fromFieldPath: spec.parameters.roleName
@@ -150,7 +304,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      # Ingress Rules
       - name: sg-rule-http
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -191,7 +344,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      # Egress Rule
       - name: sg-rule-egress-all
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
@@ -212,98 +364,6 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-      - name: vpc-dev-demo
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: VPC
-          metadata:
-            name: vpc-dev-demo
-          spec:
-            forProvider:
-              region: us-east-1
-              cidrBlock: 10.0.0.0/16
-
-      - name: internet-gateway
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: InternetGateway
-          metadata:
-            name: dev-igw
-          spec:
-            forProvider:
-              region: us-east-1
-              vpcIdRef:
-                name: vpc-dev-demo
-      
-      - name: public-subnet
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: Subnet
-          metadata:
-            name: public-subnet-dev
-          spec:
-            forProvider:
-              region: us-east-1
-              cidrBlock: 10.0.0.0/24
-              mapPublicIpOnLaunch: true
-              vpcIdRef:
-                name: vpc-dev-demo
-
-      - name: private-subnet
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: Subnet
-          metadata:
-            name: private-subnet-dev
-          spec: 
-            forProvider:
-              region: us-east-1
-              cidrBlock: 10.0.1.0/24
-              mapPublicIpOnLaunch: false
-              vpcIdRef:
-                name: vpc-dev-demo
-
-      - name: public-route-table
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: RouteTable
-          metadata:
-            name: public-rt
-          spec:
-            forProvider:
-              region: us-east-1
-              vpcIdRef:
-                name: vpc-dev-demo
-
-      - name: public-route
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: Route
-          metadata:
-            name: public-route
-          spec:
-            forProvider:
-              region: us-east-1
-              routeTableIdRef:
-                name: public-rt
-              destinationCidrBlock: "0.0.0.0/0"
-              gatewayIdRef:
-                name: dev-igw
-
-      - name: public-rt-association
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: RouteTableAssociation
-          metadata:
-            name: public-rta
-          spec:
-            forProvider:
-              region: us-east-1
-              routeTableIdRef:
-                name: public-rt
-              subnetIdRef:
-                name: public-subnet-dev
-
   - step: web-resources
     functionRef:
       name: function-patch-and-transform
@@ -311,6 +371,7 @@ spec:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
       resources:
+
       - name: s3-bucket
         base:
           apiVersion: s3.aws.upbound.io/v1beta2
@@ -340,7 +401,7 @@ spec:
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
               subnetIdRef:
-                name: public-subnet-dev
+                name: public-subnet
             providerConfigRef:
               name: default
         patches:
