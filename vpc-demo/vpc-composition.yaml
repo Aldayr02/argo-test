@@ -2,6 +2,8 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: vpc-network-composition
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     provider: aws
     network: vpc
