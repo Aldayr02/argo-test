@@ -1,0 +1,439 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: ec2-role-composition
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.io/v1alpha1
+    kind: XEC2Role
+  mode: Pipeline
+  pipeline:
+  - step: infrastructure
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+
+      - name: s3-access-role
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: Role
+          spec:
+            forProvider:
+              assumeRolePolicy: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "ec2.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                }
+              description: "IAM role for EC2 instances created by Crossplane"
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName  
+          toFieldPath: spec.forProvider.tags.BucketAccess
+      
+      - name: s3-access-policy
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: Policy
+          spec:
+            forProvider:
+              description: "S3 access policy for Crossplane managed role"
+            providerConfigRef:
+              name: default
+        patches:
+        - type: CombineFromComposite
+          combine:
+            variables:
+            - fromFieldPath: spec.parameters.bucketName
+            - fromFieldPath: spec.parameters.bucketName 
+            strategy: string
+            string:
+              fmt: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject",
+                                "s3:ListBucket"
+                            ],
+                            "Resource": [
+                                "arn:aws:s3:::%s",
+                                "arn:aws:s3:::%s/*"
+                            ]
+                        }
+                    ]
+                }
+          toFieldPath: spec.forProvider.policy
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-s3-policy"
+      
+      - name: role-policy-attachment
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: RolePolicyAttachment
+          spec:
+            forProvider:
+              roleSelector:
+                matchControllerRef: true
+              policyArnSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+
+      - name: instance-profile
+        base:
+          apiVersion: iam.aws.upbound.io/v1beta1
+          kind: InstanceProfile
+          spec:
+            forProvider:
+              roleSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName  
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-instance-profile"
+      
+      # Security Group
+      - name: web-security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          spec:
+            forProvider:
+              description: "Web security group"
+            providerConfigRef:
+              name: default
+            vpcIdRef:
+              name: vpc-dev-demo
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-web-sg"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Ingress Rules
+      - name: sg-rule-http
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 80
+              toPort: 80
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: sg-rule-ssh
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 22
+              toPort: 22
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      # Egress Rule
+      - name: sg-rule-egress-all
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "egress"
+              fromPort: 0
+              toPort: 0
+              protocol: "-1"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: vpc-dev-demo
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: VPC
+          metadata:
+            name: vpc-dev-demo
+          spec:
+            forProvider:
+              region: us-east-1
+              cidrBlock: 10.0.0.0/16
+
+      - name: internet-gateway
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: InternetGateway
+          metadata:
+            name: dev-igw
+          spec:
+            forProvider:
+              region: us-east-1
+              vpcIdRef:
+                name: vpc-dev-demo
+      
+      - name: public-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: public-subnet-dev
+          spec:
+            forProvider:
+              region: us-east-1
+              cidrBlock: 10.0.0.0/19
+              mapPublicIpOnLaunch: true
+              vpcIdRef:
+                name: vpc-dev-demo
+
+      - name: private-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          metadata:
+            name: private-subnet-dev
+          spec: 
+            forProvider:
+              region: us-east-1
+              cidrBlock: 10.0.1.0/19
+              mapPublicIpOnLaunch: false
+              vpcIdRef:
+                name: vpc-dev-demo
+
+      - name: public-route-table
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTable
+          metadata:
+            name: public-rt
+          spec:
+            forProvider:
+              region: us-east-1
+              vpcIdRef:
+                name: vpc-dev-demo
+
+      - name: public-route
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          metadata:
+            name: public-route
+          spec:
+            forProvider:
+              region: us-east-1
+              routeTableIdRef:
+                name: public-rt
+              destinationCidrBlock: "0.0.0.0/0"
+              gatewayIdRef:
+                name: dev-igw
+
+      - name: public-rt-association
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTableAssociation
+          metadata:
+            name: public-rta
+          spec:
+            forProvider:
+              region: us-east-1
+              routeTableIdRef:
+                name: public-rt
+              subnetIdRef:
+                name: public-subnet-dev
+
+  - step: web-resources
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: s3-bucket
+        base:
+          apiVersion: s3.aws.upbound.io/v1beta2
+          kind: Bucket
+          spec:
+            forProvider:
+              region: us-east-1
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: ec2-instance
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta2
+          kind: Instance
+          spec:
+            forProvider:
+              ami: ami-06c3254d99b7c0139
+              instanceType: t3.micro
+              region: us-east-1
+              vpcSecurityGroupIdSelector:
+                matchControllerRef: true
+              subnetIdRef:
+                name: public-subnet-dev
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.instanceName
+          toFieldPath: metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.amiId
+          toFieldPath: spec.forProvider.ami
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.ec2.instanceType
+          toFieldPath: spec.forProvider.instanceType
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath 
+          fromFieldPath: spec.parameters.ec2.keyName
+          toFieldPath: spec.forProvider.keyName
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.bucketName
+          toFieldPath: spec.forProvider.userData
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: |
+                #!/bin/bash
+                yum update -y
+                yum install -y httpd cronie
+                systemctl start httpd
+                systemctl enable httpd
+                
+                # Start and enable cron service
+                systemctl start crond
+                systemctl enable crond
+                
+                cat > /usr/local/bin/sync-web.sh << 'EOF'
+                #!/bin/bash
+                LOG_FILE="/var/log/sync-web.log"
+                echo "$(date): Starting sync from s3://%[1]s/web/" >> $LOG_FILE
+                
+                aws s3 sync s3://%[1]s/web/ /var/www/html/ --region us-east-1 >> $LOG_FILE 2>&1
+                
+                if [ $? -eq 0 ]; then
+                    echo "$(date): Sync completed successfully" >> $LOG_FILE
+                else
+                    echo "$(date): Sync failed with exit code $?" >> $LOG_FILE
+                fi
+                
+                systemctl reload httpd
+                EOF
+                
+                chmod +x /usr/local/bin/sync-web.sh
+                
+                # Run initial sync
+                /usr/local/bin/sync-web.sh
+                
+                # Add to crontab
+                echo "*/2 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
+                systemctl restart crond
+                
+                # Create default index if it doesn't exist after sync
+                if [ ! -f /var/www/html/index.html ]; then
+                  cat > /var/www/html/index.html << 'HTMLEOF'
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Mi Servidor Web con Crossplane</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; }
+                        .container { max-width: 800px; margin: 0 auto; }
+                        .header { background: #f4f4f4; padding: 20px; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚀 ¡Servidor Web Funcionando!</h1>
+                            <p>Esta página web está servida desde un EC2 creado con Crossplane</p>
+                            <p>Los archivos se sincronizan desde S3: %[1]s</p>
+                        </div>
+                        <h2>Información del Sistema:</h2>
+                        <p>Bucket S3: %[1]s</p>
+                    </div>
+                </body>
+                </html>
+                HTMLEOF
+                fi
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: spec.forProvider.iamInstanceProfile
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-instance-profile"
