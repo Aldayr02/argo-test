@@ -150,7 +150,7 @@ spec:
               subnetIdSelector:
                 matchControllerRef: true
                 matchLabels:
-                  subnet-type: public
+                  name: public-subnet
             providerConfigRef:
               name: default
         patches:
