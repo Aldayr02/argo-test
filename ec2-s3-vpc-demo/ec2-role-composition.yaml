@@ -286,7 +286,7 @@ spec:
           kind: SecurityGroup
           spec:
             forProvider:
-              description: "Web security group"
+              description: "Web security groupasdasdasdasd"
             providerConfigRef:
               name: default
             vpcIdSelector:
