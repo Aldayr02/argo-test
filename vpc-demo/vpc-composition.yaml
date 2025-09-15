@@ -1,0 +1,156 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: vpc-network-composition
+  labels:
+    provider: aws
+    network: vpc
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.io/v1alpha1
+    kind: XNetwork
+  mode: Pipeline
+  pipeline:
+  - step: network-infrastructure
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: vpc
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: VPC
+          spec:
+            forProvider:
+              enableDnsSupport: true
+              enableDnsHostnames: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.cidrBlock
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.enableDnsSupport
+          toFieldPath: spec.forProvider.enableDnsSupport
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.enableDnsHostnames
+          toFieldPath: spec.forProvider.enableDnsHostnames
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.vpcId
+      
+      - name: internet-gateway
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: InternetGateway
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      
+      - name: public-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+              mapPublicIpOnLaunch: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.publicSubnetCidr
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.publicSubnetId
+      
+      - name: private-subnet
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Subnet
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+              mapPublicIpOnLaunch: false
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.privateSubnetCidr
+          toFieldPath: spec.forProvider.cidrBlock
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.id
+          toFieldPath: status.privateSubnetId
+      
+      - name: public-route-table
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTable
+          spec:
+            forProvider:
+              vpcIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      
+      - name: public-route
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: Route
+          spec:
+            forProvider:
+              destinationCidrBlock: "0.0.0.0/0"
+              routeTableIdSelector:
+                matchControllerRef: true
+              gatewayIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+          
+      - name: public-route-table-association
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: RouteTableAssociation
+          spec:
+            forProvider:
+              routeTableIdSelector:
+                matchControllerRef: true
+              subnetIdSelector:
+                matchLabels:
+                  subnet-type: public
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region

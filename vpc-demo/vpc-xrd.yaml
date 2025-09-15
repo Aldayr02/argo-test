@@ -1,0 +1,55 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xnetworks.aws.platform.io
+spec:
+  group: aws.platform.io
+  names:
+    kind: XNetwork
+    plural: xnetworks
+  claimNames:
+    kind: Network
+    plural: networks
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                properties:
+                  region:
+                    type: string
+                    description: "AWS region to deploy the VPC"
+                  vpcName:
+                    type: string
+                    description: "Name for the VPC"
+                  cidrBlock:
+                    type: string
+                    description: "CIDR block for the VPC"
+                    default: "10.0.0.0/16"
+                  publicSubnetCidr:
+                    type: string
+                    description: "CIDR block for the public subnet"
+                    default: "10.0.0.0/24"
+                  privateSubnetCidr:
+                    type: string
+                    description: "CIDR block for the private subnet"
+                    default: "10.0.1.0/24"
+                  enableDnsSupport:
+                    type: boolean
+                    default: true
+                  enableDnsHostnames:
+                    type: boolean
+                    default: true
+                required:
+                - region
+                - vpcName
+            required:
+            - parameters

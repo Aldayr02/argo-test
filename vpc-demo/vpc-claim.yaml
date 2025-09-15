@@ -1,0 +1,13 @@
+apiVersion: aws.platform.io/v1alpha1
+kind: Network
+metadata:
+  name: app-vpc
+spec:
+  parameters:
+    region: us-east-1
+    vpcName: application-vpc
+    cidrBlock: 10.100.0.0/16
+    publicSubnetCidr: 10.100.0.0/24
+    privateSubnetCidr: 10.100.1.0/24
+    enableDnsSupport: true
+    enableDnsHostnames: true
