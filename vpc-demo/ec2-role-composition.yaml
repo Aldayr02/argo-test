@@ -244,7 +244,7 @@ spec:
           spec:
             forProvider:
               region: us-east-1
-              cidrBlock: 10.0.0.0/19
+              cidrBlock: 10.0.0.0/24
               mapPublicIpOnLaunch: true
               vpcIdRef:
                 name: vpc-dev-demo
@@ -258,7 +258,7 @@ spec:
           spec: 
             forProvider:
               region: us-east-1
-              cidrBlock: 10.0.1.0/19
+              cidrBlock: 10.0.1.0/24
               mapPublicIpOnLaunch: false
               vpcIdRef:
                 name: vpc-dev-demo
