@@ -18,7 +18,7 @@ sudo k3s kubectl get nodes
 mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $USER:$USER ~/.kube/config
-export KUBECONFIG=~/.kube/config
+echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
 
 sudo yum install bash-completion
 source <(kubectl completion bash)
