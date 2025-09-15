@@ -403,8 +403,10 @@ spec:
               region: us-east-1
               vpcSecurityGroupIdSelector:
                 matchControllerRef: true
-              subnetIdRef:
-                name: public-subnet
+              subnetIdSelector:
+                matchControllerRef: true
+                matchLabels:
+                  name: public-subnet
             providerConfigRef:
               name: default
         patches:
