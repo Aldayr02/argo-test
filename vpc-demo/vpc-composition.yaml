@@ -66,6 +66,9 @@ spec:
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
           kind: Subnet
+          metadata:
+            labels:
+              name: public-subnet
           spec:
             forProvider:
               vpcIdSelector:
