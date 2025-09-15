@@ -148,6 +148,7 @@ spec:
               routeTableIdSelector:
                 matchControllerRef: true
               subnetIdSelector:
+                matchControllerRef: true
                 matchLabels:
                   subnet-type: public
             providerConfigRef:
