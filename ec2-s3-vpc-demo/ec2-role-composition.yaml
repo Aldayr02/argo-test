@@ -284,6 +284,7 @@ spec:
         base:
           apiVersion: ec2.aws.upbound.io/v1beta1
           kind: SecurityGroup
+          metadata: web-security-group
           spec:
             forProvider:
               description: "Web security groupasdasdasdasd"
