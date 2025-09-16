@@ -166,7 +166,112 @@ spec:
           fromFieldPath: spec.parameters.region
           toFieldPath: spec.forProvider.region
 
-  - step: infrastructure
+      - name: web-security-group
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroup
+          metadata: 
+            name: web-security-group
+            labels: 
+              sc: web-security-group
+          spec:
+            forProvider:
+              description: "Web security groupasdasdasdasd"
+              vpcIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.roleName
+          toFieldPath: metadata.name
+          transforms:
+          - type: string
+            string:
+              type: Format
+              fmt: "%s-web-sg"
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+
+  - step: security-group-rules
+    functionRef:
+      name: function-patch-and-transform
+    readinessChecks:
+      - type: MatchCondition
+        matchCondition:
+          type: Ready
+          selector:
+            matchLabels:
+              sc: web-security-group
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      
+      - name: sg-rule-http
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 80
+              toPort: 80
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: sg-rule-ssh
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "ingress"
+              fromPort: 22
+              toPort: 22
+              protocol: "tcp"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+      - name: sg-rule-egress-all
+        base:
+          apiVersion: ec2.aws.upbound.io/v1beta1
+          kind: SecurityGroupRule
+          spec:
+            forProvider:
+              type: "egress"
+              fromPort: 0
+              toPort: 0
+              protocol: "-1"
+              cidrBlocks: ["0.0.0.0/0"]
+              securityGroupIdSelector:
+                matchControllerRef: true
+            providerConfigRef:
+              name: default
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+
+  - step: iam-infrastructure
     functionRef:
       name: function-patch-and-transform
     input:
@@ -281,91 +386,6 @@ spec:
               type: Format
               fmt: "%s-instance-profile"
       
-      - name: web-security-group
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroup
-          metadata: 
-            name: web-security-group
-          spec:
-            forProvider:
-              description: "Web security groupasdasdasdasd"
-              vpcIdSelector:
-                matchControllerRef: true
-            providerConfigRef:
-              name: default
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.roleName
-          toFieldPath: metadata.name
-          transforms:
-          - type: string
-            string:
-              type: Format
-              fmt: "%s-web-sg"
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-rule-http
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "ingress"
-              fromPort: 80
-              toPort: 80
-              protocol: "tcp"
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-            providerConfigRef:
-              name: default
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-rule-ssh
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "ingress"
-              fromPort: 22
-              toPort: 22
-              protocol: "tcp"
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-            providerConfigRef:
-              name: default
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
-
-      - name: sg-rule-egress-all
-        base:
-          apiVersion: ec2.aws.upbound.io/v1beta1
-          kind: SecurityGroupRule
-          spec:
-            forProvider:
-              type: "egress"
-              fromPort: 0
-              toPort: 0
-              protocol: "-1"
-              cidrBlocks: ["0.0.0.0/0"]
-              securityGroupIdSelector:
-                matchControllerRef: true
-            providerConfigRef:
-              name: default
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.parameters.region
-          toFieldPath: spec.forProvider.region
 
   - step: web-resources
     functionRef:
@@ -465,7 +485,7 @@ spec:
                 /usr/local/bin/sync-web.sh
                 
                 # Add to crontab
-                echo "*/2 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
+                echo "*/1 * * * * root /usr/local/bin/sync-web.sh" >> /etc/crontab
                 systemctl restart crond
                 
                 # Create default index if it doesn't exist after sync
@@ -473,23 +493,12 @@ spec:
                   cat > /var/www/html/index.html << 'HTMLEOF'
                 <!DOCTYPE html>
                 <html>
-                <head>
-                    <title>Mi Servidor Web con Crossplane</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 40px; }
-                        .container { max-width: 800px; margin: 0 auto; }
-                        .header { background: #f4f4f4; padding: 20px; border-radius: 5px; }
-                    </style>
-                </head>
                 <body>
                     <div class="container">
                         <div class="header">
-                            <h1>🚀 ¡Servidor Web Funcionando!</h1>
-                            <p>Esta página web está servida desde un EC2 creado con Crossplane</p>
+                            <p>Pagina Default</p>
                             <p>Los archivos se sincronizan desde S3: %[1]s</p>
                         </div>
-                        <h2>Información del Sistema:</h2>
-                        <p>Bucket S3: %[1]s</p>
                     </div>
                 </body>
                 </html>
