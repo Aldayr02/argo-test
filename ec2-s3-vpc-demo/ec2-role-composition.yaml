@@ -198,8 +198,6 @@ spec:
   - step: security-group-rules
     functionRef:
       name: function-patch-and-transform
-    dependsOn:
-      - network-infrastructure 
     input:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
