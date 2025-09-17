@@ -198,13 +198,8 @@ spec:
   - step: security-group-rules
     functionRef:
       name: function-patch-and-transform
-    readinessChecks:
-      - type: MatchCondition
-        matchCondition:
-          type: Ready
-          selector:
-            matchLabels:
-              sc: web-security-group
+    dependsOn:
+      - network-infrastructure 
     input:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
